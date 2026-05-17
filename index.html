@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>PD-MCI Risk Assessment</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.39.0/build/stlite.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.39.0/build/stlite.js"></script>
+    <script>
+      stlite.mount(
+        {
+          requirements: ["numpy", "pandas", "plotly"], // 列出你需要的库
+          entrypoint: "webapp.py",
+          files: {
+            "webapp.py": `
+import streamlit as st
+import numpy as np
+import plotly.graph_objects as go
+import pandas as pd
+
+# ---------------- 模型参数 ----------------
+MODEL = {
+    "coef": [0.61999256, -0.13608411, 0.02756812, 0.09713671, 0.00337871, 0.26305601, 0.21096589, 0.01855644],
+    "intercept": -1.4159772,
+    "names": ["Sex", "Education Years (EDUCYRS)", "Sleep Scale (RBDSQ)", "Depression Scale (GDS)", 
+              "Autonomic Scale (SCOPA-AUT)", "H&Y Stage", "Gait Disorder (PIGD)", "Motor Score (UPDRS-III)"],
+    "thr": {"default": 0.5, "f1": 0.2114, "youden": 0.1909}
+}
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+st.set_page_config(page_title="PD-MCI Risk Assessment System", layout="wide")
+st.title("🧠 Parkinson's Disease MCI Risk Assessment (Offline Mode)")
+
+# --- 侧边栏输入 ---
+st.sidebar.header("📋 Patient Clinical Indicators")
+with st.sidebar:
+    sex = st.selectbox("Sex", options=[0, 1], format_func=lambda x: "Male (1)" if x == 1 else "Female (0)")
+    educ = st.number_input("Education Years (EDUCYRS)", min_value=0, max_value=30, value=12)
+    rbdsq = st.number_input("Sleep Scale (RBDSQ)", min_value=0.0, max_value=13.0, value=5.0)
+    gds = st.number_input("Depression Scale (GDS)", min_value=0.0, max_value=15.0, value=4.0)
+    scopa = st.number_input("Autonomic Scale (SCOPA-AUT)", min_value=0.0, max_value=53.0, value=15.0)
+    hy = st.selectbox("H&Y Stage", options=[0, 1, 2, 3, 4, 5], index=2)
+    pigd = st.number_input("PIGD Score", min_value=0.0, max_value=4.0, value=1.0)
+    updrs3 = st.number_input("UPDRS-III Motor Score", min_value=0, max_value=96, value=25)
+
+# --- 计算逻辑 ---
+inputs = np.array([sex, educ, rbdsq, gds, scopa, hy, pigd, updrs3])
+logit = np.dot(MODEL["coef"], inputs) + MODEL["intercept"]
+prob = sigmoid(logit)
+contributions = MODEL["coef"] * inputs
+
+# --- 布局展示 ---
+col1, col2 = st.columns([1, 1])
+with col1:
+    st.subheader("📊 Risk Prediction")
+    fig_gauge = go.Figure(go.Indicator(
+        mode = "gauge+number",
+        value = prob * 100,
+        gauge = {'axis': {'range': [0, 100]}, 'threshold': {'line': {'color': "red", 'width': 4}, 'value': MODEL["thr"]["youden"]*100}}
+    ))
+    st.plotly_chart(fig_gauge, use_container_width=True)
+
+with col2:
+    st.subheader("🔍 Feature Analysis")
+    df_contrib = pd.DataFrame({"Feature": MODEL["names"], "Contribution": contributions})
+    st.bar_chart(df_contrib.set_index("Feature"))
+
+st.info("This app runs entirely in your browser. No data is sent to a server.")
+`,
+          },
+        },
+        document.getElementById("root")
+      );
+    </script>
+  </body>
+</html>
