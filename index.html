@@ -1,157 +1,998 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PD-MCI Risk Assessment System</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.71.0/build/stlite.css" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.71.0/build/stlite.js"></script>
-    <script>
-      stlite.mount(
-        {
-          requirements: ["numpy", "pandas", "plotly"],
-          entrypoint: "webapp_6.py",
-          files: {
-            "webapp_6.py": `
-import streamlit as st
-import numpy as np
-import plotly.graph_objects as go
-import pandas as pd
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-# ---------------- Core Model Parameters ----------------
-MODEL = {
-    "coef": [0.61999256, -0.13608411, 0.02756812, 0.09713671, 0.00337871, 0.26305601, 0.21096589, 0.01855644],
-    "intercept": -1.4159772,
-    "names": ["Sex", "Education Years (EDUCYRS)", "Sleep Scale (RBDSQ)", "Depression Scale (GDS)", 
-              "Autonomic Scale (SCOPA-AUT)", "H&Y Stage", "Gait Disorder (PIGD)", "Motor Score (UPDRS-III)"],
-    "thr": {"default": 0.5, "f1": 0.2114, "youden": 0.1909}
-}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f4f6fa;
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-# ---------------- Page Configuration ----------------
-st.set_page_config(page_title="PD-MCI Risk Assessment System", layout="wide")
+        header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
 
-st.title("🧠 Parkinson's Disease Mild Cognitive Impairment (PD-MCI) Risk Assessment")
-st.markdown("Real-time prediction and clinical analysis tool based on logistic regression model (PPMI cohort study).")
+        header h1 {
+            font-size: 2.2em;
+            color: #0f172a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
 
-# ---------------- Sidebar: Data Input ----------------
-st.sidebar.header("📋 Patient Clinical Indicators")
+        header p {
+            font-size: 1.1em;
+            color: #64748b;
+        }
 
-with st.sidebar:
-    sex = st.selectbox("Sex", options=[0, 1], format_func=lambda x: "Male (1)" if x == 1 else "Female (0)")
-    educ = st.number_input("Education Years (EDUCYRS)", min_value=0, max_value=30, value=12)
-    rbdsq = st.number_input("Sleep Scale (RBDSQ)", min_value=0.0, max_value=13.0, value=5.0, step=0.5)
-    gds = st.number_input("Depression Scale (GDS)", min_value=0.0, max_value=15.0, value=4.0, step=0.5)
-    scopa = st.number_input("Autonomic Scale (SCOPA-AUT)", min_value=0.0, max_value=53.0, value=15.0, step=1.0)
-    hy = st.selectbox("Hoehn & Yahr Stage (H&Y)", options=[0, 1, 2, 3, 4, 5], index=2)
-    pigd = st.number_input("PIGD Score", min_value=0.0, max_value=4.0, value=1.0, step=0.04)
-    updrs3 = st.number_input("UPDRS-III Motor Score", min_value=0, max_value=96, value=25)
+        /* Perfectly align grid heights */
+        .main-content {
+            display: grid;
+            grid-template-columns: 370px 1fr;
+            gap: 25px;
+            align-items: stretch;
+        }
 
-# ---------------- Calculation Logic ----------------
-inputs = np.array([sex, educ, rbdsq, gds, scopa, hy, pigd, updrs3])
-logit = np.dot(MODEL["coef"], inputs) + MODEL["intercept"]
-prob = sigmoid(logit)
-contributions = MODEL["coef"] * inputs
-
-# ---------------- Main Interface Layout ----------------
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    st.subheader("📊 Risk Prediction Results")
-    
-    # Complete Gauge chart with color segments
-    fig_gauge = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = prob * 100,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "PD-MCI Probability (%)", 'font': {'size': 24}},
-        gauge = {
-            'axis': {'range': [0, 100], 'tickwidth': 1},
-            'bar': {'color': "#1f77b4"},
-            'steps': [
-                {'range': [0, MODEL["thr"]["youden"]*100], 'color': "#e8f5e9"},
-                {'range': [MODEL["thr"]["youden"]*100, 50], 'color': "#fff3e0"},
-                {'range': [50, 100], 'color': "#ffebee"}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': MODEL["thr"]["youden"]*100
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                align-items: start;
             }
         }
-    ))
-    fig_gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
-    st.plotly_chart(fig_gauge, use_container_width=True)
 
-    # Conditional judgment text
-    if prob >= MODEL["thr"]["default"]:
-        st.error(f"**Diagnosis Suggestion: High Risk (Positive)** \\n\\nCurrent probability ({prob:.1%}) exceeds the standard threshold (50%).")
-    elif prob >= MODEL["thr"]["youden"]:
-        st.warning(f"**Diagnosis Suggestion: Potential Risk (Warning)** \\n\\nProbability ({prob:.1%}) exceeds the Youden index optimal threshold ({MODEL['thr']['youden']:.1%}), close monitoring recommended.")
-    else:
-        st.success(f"**Diagnosis Suggestion: Low Risk (Negative)** \\n\\nCurrent cognitive status predicted as normal.")
+        .sidebar {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(148, 163, 184, 0.08);
+            border: 1px solid #e2e8f0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
 
-with col2:
-    st.subheader("🔍 Feature Contribution Analysis")
-    
-    # Contribution analysis chart (sorted by absolute value, color-coded by positive/negative)
-    df_contrib = pd.DataFrame({
-        "Feature": MODEL["names"],
-        "Contribution": contributions
-    })
-    df_contrib["Absolute Value"] = df_contrib["Contribution"].abs()
-    df_contrib = df_contrib.sort_values(by="Absolute Value", ascending=True)
-    
-    fig_contrib = go.Figure()
-    fig_contrib.add_trace(go.Bar(
-        y=df_contrib["Feature"],
-        x=df_contrib["Absolute Value"],
-        orientation='h',
-        marker_color=['#ef5350' if x > 0 else '#66bb6a' for x in df_contrib["Contribution"]],
-        text=[f"{v:+.3f}" for v in df_contrib["Contribution"]],
-        textposition='outside'
-    ))
-    fig_contrib.update_layout(
-        title="Impact of Each Indicator (Red: Increase Risk, Green: Decrease)",
-        xaxis_title="Absolute Contribution Score",
-        height=400,
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    st.plotly_chart(fig_contrib, use_container_width=True)
+        .sidebar h2 {
+            color: #1e293b;
+            font-size: 1.3em;
+            margin-bottom: 22px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #2b6cb0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-# ---------------- Clinical Analysis Report Section ----------------
-st.divider()
-st.subheader("📝 Clinical Brief Analysis")
+        .form-fields {
+            flex-grow: 1;
+        }
 
-col_a, col_b = st.columns(2)
+        .form-group {
+            margin-bottom: 20px;
+        }
 
-with col_a:
-    st.markdown(f"""
-    **1. Key Risk Driving Factors:**
-    * **Main Positive Factors:** {df_contrib.iloc[-1]['Feature']} and {df_contrib.iloc[-2]['Feature']} contribute most to this patient's risk score.
-    * **Educational Background:** The coefficient for education years is negative ({-MODEL['coef'][1]:.2f}), meaning higher education is a significant protective factor.
-    """)
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+            font-size: 0.9em;
+        }
 
-with col_b:
-    st.markdown(f"""
-    **2. Threshold Reference:**
-    * **Standard Threshold (0.50):** Used for general classification.
-    * **Youden Threshold ({MODEL['thr']['youden']:.3f}):** Balance point, suitable for early screening.
-    * **F1 Threshold ({MODEL['thr']['f1']:.3f}):** Optimized for imbalanced samples.
-    """)
+        .form-group .hint {
+            font-size: 0.75em;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
 
-st.info("Note: This tool is for research reference only, not as the sole diagnostic basis.")
-`,
-          },
-        },
-        document.getElementById("root")
-      );
+        /* Segmented Control styling for Sex select */
+        .segmented-control {
+            display: flex;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .segmented-control input[type="radio"] {
+            display: none;
+        }
+
+        .segmented-control label {
+            flex: 1;
+            text-align: center;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            margin-bottom: 0;
+        }
+
+        .segmented-control input[type="radio"]:checked+label {
+            background: white;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            font-weight: 600;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1em;
+            color: #1e293b;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background-color: #ffffff;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #2b6cb0;
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15);
+        }
+
+        .results-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            height: 100%;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            align-items: stretch;
+        }
+
+        @media (max-width: 1200px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(148, 163, 184, 0.08);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card h3 {
+            color: #1e293b;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* SVG icon sizing */
+        .title-icon {
+            width: 22px;
+            height: 22px;
+            stroke: #2b6cb0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        header .title-icon {
+            width: 34px;
+            height: 34px;
+        }
+
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        #gaugeCanvas {
+            width: 400px;
+            height: 200px;
+        }
+
+        .probability-display {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .probability-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .probability-label {
+            color: #64748b;
+            font-size: 1em;
+        }
+
+        .diagnosis-box {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            line-height: 1.4;
+            width: 100%;
+        }
+
+        .diagnosis-high {
+            background: #fdedec;
+            border-left: 4px solid #e74c3c;
+            color: #78281f;
+        }
+
+        .diagnosis-warning {
+            background: #fef5e7;
+            border-left: 4px solid #f39c12;
+            color: #7e5109;
+        }
+
+        .diagnosis-low {
+            background: #eafaf1;
+            border-left: 4px solid #2ecc71;
+            color: #196f3d;
+        }
+
+        #contributionChart {
+            width: 100%;
+            height: 350px;
+        }
+
+        .analysis-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .analysis-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .analysis-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .analysis-box h4 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 1em;
+        }
+
+        .analysis-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .analysis-box li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            color: #555;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .analysis-box li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #2b6cb0;
+            font-weight: bold;
+        }
+
+        /* Interactive Threshold Selector Styling */
+        .threshold-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .threshold-item {
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .threshold-item:hover {
+            border-color: #cbd5e1;
+            background: #f1f5f9;
+        }
+
+        .threshold-item.active {
+            border-color: #2b6cb0;
+            background: #f0f7ff;
+        }
+
+        .threshold-item strong {
+            display: block;
+            color: #1e293b;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .threshold-item.active strong {
+            color: #2b6cb0;
+        }
+
+        .threshold-item p {
+            margin-top: 4px;
+            font-size: 0.8em;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        /* Active selection checkmark using standard inline SVG */
+        .threshold-item.active::after {
+            content: "";
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b6cb0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        .info-note {
+            background: #f0f7ff;
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: #0c4a6e;
+            font-size: 0.88em;
+            margin-top: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .info-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* Legend for contribution chart */
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85em;
+            color: #64748b;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .legend-risk {
+            background: #ef5350;
+        }
+
+        .legend-protect {
+            background: #66bb6a;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <i class="title-icon" data-lucide="brain"></i>
+                Parkinson's Disease Mild Cognitive Impairment (PD-MCI) Risk Assessment
+            </h1>
+            <p>Real-time prediction and clinical analysis tool based on logistic regression model (PPMI cohort study)
+            </p>
+        </header>
+
+        <div class="main-content">
+            <!-- Sidebar: Input Form -->
+            <aside class="sidebar">
+                <h2>
+                    <i class="title-icon" data-lucide="clipboard-list"></i>
+                    Patient Clinical Indicators
+                </h2>
+
+                <div class="form-fields">
+                    <div class="form-group">
+                        <label>Sex</label>
+                        <div class="hint">0 = Female, 1 = Male</div>
+                        <div class="segmented-control">
+                            <input type="radio" id="sex_female" name="sex" value="0" checked>
+                            <label for="sex_female">0 - Female</label>
+                            <input type="radio" id="sex_male" name="sex" value="1">
+                            <label for="sex_male">1 - Male</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="educ">EDUCYRS (Education Years)</label>
+                        <div class="hint">Reference range: 0-30 years</div>
+                        <input type="number" id="educ" min="0" max="30" value="12" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rbdsq">RBDSQ (REM Sleep Behavior Disorder Scale)</label>
+                        <div class="hint">Range: 0-13, ≥5 suggests possible RBD</div>
+                        <input type="number" id="rbdsq" min="0" max="13" value="5" step="0.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gds">GDS (Geriatric Depression Scale)</label>
+                        <div class="hint">0-4 normal, 5-9 mild, ≥10 moderate-severe depression</div>
+                        <input type="number" id="gds" min="0" max="15" value="4" step="0.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scopa">SCOPA-AUT (Autonomic Dysfunction)</label>
+                        <div class="hint">Range: 0-53, higher = more severe dysfunction</div>
+                        <input type="number" id="scopa" min="0" max="53" value="15" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hy">H&Y (Hoehn & Yahr Stage)</label>
+                        <div class="hint">0-5 stage progression</div>
+                        <select id="hy">
+                            <option value="0">0 - No symptoms</option>
+                            <option value="1">1 - Unilateral involvement</option>
+                            <option value="2" selected>2 - Bilateral without balance impairment</option>
+                            <option value="3">3 - Mild-moderate bilateral</option>
+                            <option value="4">4 - Severe but can walk</option>
+                            <option value="5">5 - Wheelchair/bedridden</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pigd">PIGD (Postural Instability/Gait Disorder)</label>
+                        <div class="hint">Range: 0-4, higher = more severe gait disorder</div>
+                        <input type="number" id="pigd" min="0" max="4" value="1" step="0.04">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="updrs3">UPDRS-III (Motor Examination)</label>
+                        <div class="hint">Range: 0-96, higher = more severe motor symptoms</div>
+                        <input type="number" id="updrs3" min="0" max="96" value="25" step="1">
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Results Panel -->
+            <main class="results-panel">
+                <div class="charts-row">
+                    <!-- Risk Prediction Card -->
+                    <div class="card">
+                        <h3>
+                            <i class="title-icon" data-lucide="gauge"></i>
+                            Risk Prediction Results
+                        </h3>
+                        <div class="gauge-container">
+                            <canvas id="gaugeCanvas" width="400" height="280"></canvas>
+                            <div class="probability-display">
+                                <div class="probability-value" id="probabilityValue">--</div>
+                                <div class="probability-label">PD-MCI Probability</div>
+                            </div>
+                            <div id="diagnosisBox" class="diagnosis-box diagnosis-low">
+                                <strong>Diagnosis Suggestion:</strong> Enter patient data to see results.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contribution Analysis Card -->
+                    <div class="card">
+                        <h3>
+                            <i class="title-icon" data-lucide="bar-chart-2"></i>
+                            Feature Contribution Analysis
+                        </h3>
+                        <canvas id="contributionChart"></canvas>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color legend-risk"></div>
+                                <span>Increases Risk</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color legend-protect"></div>
+                                <span>Decreases Risk</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clinical Analysis Card -->
+                <div class="card">
+                    <h3>
+                        <i class="title-icon" data-lucide="file-text"></i>
+                        Clinical Brief Analysis
+                    </h3>
+                    <div class="analysis-section">
+                        <div class="analysis-box">
+                            <h4>Threshold Reference</h4>
+                            <!-- Upgraded interactive threshold selector list -->
+                            <div class="threshold-list" id="thresholdSelector">
+                                <div class="threshold-item" data-threshold="default">
+                                    <strong>Standard Threshold (0.500)</strong>
+                                    <p>Used for general clinical classification and formal diagnosis.</p>
+                                </div>
+                                <div class="threshold-item active" data-threshold="youden">
+                                    <strong>Youden Threshold (0.191)</strong>
+                                    <p>Optimal balance between sensitivity and specificity, highly recommended for early
+                                        clinical screening.</p>
+                                </div>
+                                <div class="threshold-item" data-threshold="f1">
+                                    <strong>F1 Threshold (0.211)</strong>
+                                    <p>Balanced threshold optimized specifically for highly imbalanced cohort datasets.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="analysis-box">
+                            <h4>Driving Factors</h4>
+                            <ul id="riskFactors">
+                                <li>Main positive factors will be shown here.</li>
+                                <li>Educational background analysis will appear here.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="info-note">
+                        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 9v2m0 4h.01"></path>
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        This tool is developed based on a logistic regression model, intended for research and clinical
+                        reference only, not as the sole diagnostic basis.
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // ============ Model Parameters ============
+        const MODEL = {
+            coef: [0.61999256, -0.13608411, 0.02756812, 0.09713671, 0.00337871, 0.26305601, 0.21096589, 0.01855644],
+            intercept: -1.4159772,
+            names: ["Sex", "EDUCYRS", "RBDSQ", "GDS", "SCOPA-AUT", "H&Y", "PIGD", "UPDRS-III"],
+            thr: { default: 0.5, f1: 0.2114, youden: 0.1909 }
+        };
+
+        // Active Threshold Selection State
+        let activeThresholdType = 'youden';
+
+        // Sigmoid function
+        function sigmoid(x) {
+            return 1 / (1 + Math.exp(-x));
+        }
+
+        // Calculate probability and contributions
+        function calculateRisk() {
+            const inputs = [
+                parseFloat(document.querySelector('input[name="sex"]:checked').value),
+                parseFloat(document.getElementById('educ').value),
+                parseFloat(document.getElementById('rbdsq').value),
+                parseFloat(document.getElementById('gds').value),
+                parseFloat(document.getElementById('scopa').value),
+                parseFloat(document.getElementById('hy').value),
+                parseFloat(document.getElementById('pigd').value),
+                parseFloat(document.getElementById('updrs3').value)
+            ];
+
+            // Calculate logit
+            let logit = MODEL.intercept;
+            const contributions = [];
+            for (let i = 0; i < MODEL.coef.length; i++) {
+                contributions.push(MODEL.coef[i] * inputs[i]);
+                logit += contributions[i];
+            }
+
+            // Calculate probability
+            const prob = sigmoid(logit);
+
+            return { prob, contributions, inputs };
+        }
+
+        // Draw gauge chart with dynamic threshold segmentation
+        function drawGauge(probability) {
+            const canvas = document.getElementById('gaugeCanvas');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = rect.height;
+            const centerX = width / 2;
+            const centerY = height - 30;
+            const radius = Math.min(width, height) - 60;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Fetch dynamic active threshold value
+            const thrValue = MODEL.thr[activeThresholdType];
+
+            // Base angles
+            const startAngle = Math.PI;
+            const endAngle = 2 * Math.PI;
+
+            // Dynamic segmentation calculation based on active threshold
+            let thrAngle, midAngle;
+
+            thrAngle = startAngle + (thrValue * (endAngle - startAngle));
+            midAngle = startAngle + (0.5 * (endAngle - startAngle));
+
+            // Green zone (0 to threshold warning limit)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, thrAngle);
+            ctx.arc(centerX, centerY, radius - 35, thrAngle, startAngle, true);
+            ctx.closePath();
+            ctx.fillStyle = '#eafaf1'; // clean medical light-green
+            ctx.fill();
+
+            // Yellow zone (Warning limit to 50% high-risk line)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, thrAngle, midAngle);
+            ctx.arc(centerX, centerY, radius - 35, midAngle, thrAngle, true);
+            ctx.closePath();
+            ctx.fillStyle = '#fef5e7'; // warning warm yellow
+            ctx.fill();
+
+            // Red zone (50% to 100%)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, midAngle, endAngle);
+            ctx.arc(centerX, centerY, radius - 35, endAngle, midAngle, true);
+            ctx.closePath();
+            ctx.fillStyle = '#fdedec'; // high-risk soft red
+            ctx.fill();
+
+            // Draw arc border
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius - 35, startAngle, endAngle);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Draw tick marks and labels
+            for (let i = 0; i <= 10; i++) {
+                const angle = startAngle + (i / 10) * (endAngle - startAngle);
+                const tickOuterX = centerX + (radius + 5) * Math.cos(angle);
+                const tickOuterY = centerY + (radius + 5) * Math.sin(angle);
+                const tickInnerX = centerX + (radius - 35) * Math.cos(angle);
+                const tickInnerY = centerY + (radius - 35) * Math.sin(angle);
+
+                ctx.beginPath();
+                ctx.moveTo(tickOuterX, tickOuterY);
+                ctx.lineTo(tickInnerX, tickInnerY);
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = i % 5 === 0 ? 1.5 : 1;
+                ctx.stroke();
+
+                // Labels for major ticks
+                if (i % 2 === 0) {
+                    const labelX = centerX + (radius + 20) * Math.cos(angle);
+                    const labelY = centerY + (radius + 20) * Math.sin(angle);
+                    ctx.font = '500 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText((i * 10) + '%', labelX, labelY);
+                }
+            }
+
+            // Draw dynamic active threshold line on gauge
+            const activeThrAngle = startAngle + (thrValue * (endAngle - startAngle));
+            const thresholdOuterX = centerX + (radius + 8) * Math.cos(activeThrAngle);
+            const thresholdOuterY = centerY + (radius + 8) * Math.sin(activeThrAngle);
+            const thresholdInnerX = centerX + (radius - 43) * Math.cos(activeThrAngle);
+            const thresholdInnerY = centerY + (radius - 43) * Math.sin(activeThrAngle);
+
+            ctx.beginPath();
+            ctx.moveTo(thresholdOuterX, thresholdOuterY);
+            ctx.lineTo(thresholdInnerX, thresholdInnerY);
+            ctx.strokeStyle = '#dc2626'; // distinct strong warning red
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw needle
+            const probAngle = startAngle + (probability * (endAngle - startAngle));
+            const needleLength = radius - 50;
+            const needleX = centerX + needleLength * Math.cos(probAngle);
+            const needleY = centerY + needleLength * Math.sin(probAngle);
+
+            // Needle shadow
+            ctx.beginPath();
+            ctx.moveTo(centerX + 2, centerY + 2);
+            ctx.lineTo(needleX + 2, needleY + 2);
+            ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Needle
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(needleX, needleY);
+            ctx.strokeStyle = '#2b6cb0'; // deep blue brand color
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Center circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 12, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2b6cb0';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+        }
+
+        // Draw contribution bar chart
+        function drawContributionChart(contributions) {
+            const canvas = document.getElementById('contributionChart');
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+
+            // Set canvas size with DPI support
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = 350 * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = 350;
+            const padding = { top: 20, right: 0, bottom: 30, left: 100 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Prepare data - sort by absolute value (descending)
+            const data = MODEL.names.map((name, i) => ({
+                name: name,
+                value: contributions[i],
+                absValue: Math.abs(contributions[i])
+            })).sort((a, b) => b.absValue - a.absValue);
+
+            const maxValue = Math.max(...data.map(d => d.absValue)) * 1.3;
+            const barHeight = chartHeight / data.length - 8;
+
+            // Draw bars
+            data.forEach((d, i) => {
+                const y = padding.top + i * (chartHeight / data.length) + 4;
+                const barWidth = (d.absValue / maxValue) * chartWidth;
+
+                // Color configuration (neutral slate grey for exactly zero/neutral value)
+                const color = Math.abs(d.value) < 0.0001 ? '#cbd5e1' : (d.value > 0 ? '#ef5350' : '#66bb6a');
+
+                // Draw bar
+                ctx.beginPath();
+                ctx.roundRect(padding.left, y, barWidth, barHeight, 4);
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                // Draw label
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#333';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(d.name, padding.left - 10, y + barHeight / 2);
+
+                // Draw value
+                ctx.textAlign = 'left';
+                ctx.fillStyle = color;
+                ctx.fillText(d.value >= 0.0001 ? '+' + d.value.toFixed(3) : (Math.abs(d.value) < 0.0001 ? '0.000' : d.value.toFixed(3)),
+                    padding.left + barWidth + 8, y + barHeight / 2);
+            });
+
+            // Draw axis
+            ctx.beginPath();
+            ctx.moveTo(padding.left, padding.top);
+            ctx.lineTo(padding.left, height - padding.bottom);
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // X-axis label
+            ctx.font = '13px Arial';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'center';
+            ctx.fillText('Absolute Contribution Score',
+                width / 2, height - 10);
+        }
+
+        // Update diagnosis text dynamically compared against selected threshold
+        function updateDiagnosis(prob) {
+            const diagnosisBox = document.getElementById('diagnosisBox');
+            const thrValue = MODEL.thr[activeThresholdType];
+
+            const probPercent = (prob * 100).toFixed(1);
+            const thrPercent = (thrValue * 100).toFixed(1);
+
+            if (activeThresholdType === 'default') {
+                // Strict standard binary threshold
+                if (prob >= 0.5) {
+                    diagnosisBox.className = 'diagnosis-box diagnosis-high';
+                    diagnosisBox.innerHTML = `<strong>Diagnosis Suggestion: High Risk (Positive)</strong><br><br>
+                        Current probability (${probPercent}%) exceeds the selected Standard binary threshold (${thrPercent}%).`;
+                } else {
+                    diagnosisBox.className = 'diagnosis-box diagnosis-low';
+                    diagnosisBox.innerHTML = `<strong>Diagnosis Suggestion: Low Risk (Negative)</strong><br><br>
+                        Current cognitive status predicted as normal (below the selected Standard threshold of ${thrPercent}%).`;
+                }
+            } else {
+                // Screening thresholds (Youden or F1 index)
+                if (prob >= 0.5) {
+                    diagnosisBox.className = 'diagnosis-box diagnosis-high';
+                    diagnosisBox.innerHTML = `<strong>Diagnosis Suggestion: High Risk (Positive)</strong><br><br>
+                        Current probability (${probPercent}%) meets or exceeds the high-risk clinical threshold (50.0%).`;
+                } else if (prob >= thrValue) {
+                    diagnosisBox.className = 'diagnosis-box diagnosis-warning';
+                    diagnosisBox.innerHTML = `<strong>Diagnosis Suggestion: Potential Risk (Warning)</strong><br><br>
+                        Probability (${probPercent}%) exceeds the active screening threshold (${thrPercent}%), close clinical monitoring recommended.`;
+                } else {
+                    diagnosisBox.className = 'diagnosis-box diagnosis-low';
+                    diagnosisBox.innerHTML = `<strong>Diagnosis Suggestion: Low Risk (Negative)</strong><br><br>
+                        Current cognitive status predicted as normal (below the selected threshold of ${thrPercent}%).`;
+                }
+            }
+        }
+
+        // Update risk factors analysis (HTML structure unchanged dynamically as requested)
+        function updateRiskFactors(contributions, inputs) {
+            const data = MODEL.names.map((name, i) => ({
+                name: name,
+                value: contributions[i],
+                coef: MODEL.coef[i],
+                input: inputs[i]
+            })).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+            const positiveFactors = data.filter(d => d.value > 0);
+            const negativeFactors = data.filter(d => d.value < 0);
+
+            const topPositive = `${positiveFactors[0].name}, ${positiveFactors[1].name}, and ${positiveFactors[2].name}`;
+
+            const riskFactorsList = document.getElementById('riskFactors');
+            riskFactorsList.innerHTML = `
+            <li><strong>Main Protective Factor:</strong> The coefficient for education years is negative, meaning higher education is a protective factor in this model.</li>    
+            <li><strong>Main Risk Factors:</strong> ${topPositive} contribute most to this patient's risk score.</li>
+            `;
+        }
+
+        // Main update function
+        function updateAll() {
+            const { prob, contributions, inputs } = calculateRisk();
+
+            // Update probability display
+            document.getElementById('probabilityValue').textContent = (prob * 100).toFixed(1) + '%';
+
+            // Update gauge
+            drawGauge(prob);
+
+            // Update contribution chart
+            drawContributionChart(contributions);
+
+            // Update diagnosis
+            updateDiagnosis(prob);
+
+            // Update risk factors
+            updateRiskFactors(contributions, inputs);
+        }
+
+        // Initialize Interactive Threshold Selector card behaviors
+        function initThresholdSelector() {
+            const items = document.querySelectorAll('.threshold-item');
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    // Remove active selector classes
+                    items.forEach(i => i.classList.remove('active'));
+                    // Set clicked item as active
+                    item.classList.add('active');
+                    // Store active threshold state Globally
+                    activeThresholdType = item.getAttribute('data-threshold');
+                    // Recalculate and redraw layout values
+                    updateAll();
+                });
+            });
+        }
+
+        // Initialize event listeners
+        function init() {
+            // Initialize Lucide Icons
+            lucide.createIcons();
+
+            const inputs = ['educ', 'rbdsq', 'gds', 'scopa', 'hy', 'pigd', 'updrs3'];
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', updateAll);
+                document.getElementById(id).addEventListener('change', updateAll);
+            });
+
+            // Bind Segmented Control change listeners for sex
+            document.querySelectorAll('input[name="sex"]').forEach(elem => {
+                elem.addEventListener('change', updateAll);
+            });
+
+            // Setup interactive threshold panel click events
+            initThresholdSelector();
+
+            // Initial calculation
+            updateAll();
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                const { contributions, prob } = calculateRisk();
+                drawGauge(prob);
+                drawContributionChart(contributions);
+            });
+        }
+
+        // Start when DOM is ready
+        document.addEventListener('DOMContentLoaded', init);
     </script>
-  </body>
+</body>
+
 </html>
