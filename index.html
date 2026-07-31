@@ -463,7 +463,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="educ">EDUCYRS (Education Years)</label>
+                        <label for="educ">Education (Years of Education)</label>
                         <div class="hint">Reference range: 0-30 years</div>
                         <input type="number" id="educ" min="0" max="30" value="16" step="1">
                     </div>
@@ -610,7 +610,7 @@
         const MODEL = {
             coef: [0.6200, -0.1361, 0.0276, 0.0971, 0.0034, 0.2631, 0.2110, 0.0186],
             intercept: -1.4163,
-            names: ["Sex", "EDUCYRS", "RBDSQ", "GDS", "SCOPA-AUT", "H&Y", "PIGD", "UPDRS-III"],
+            names: ["Sex", "Education", "RBDSQ", "GDS", "SCOPA-AUT", "H&Y", "PIGD", "UPDRS-III"],
             thr: { default: 0.5, f1: 0.2113, youden: 0.1909 }
         };
 
@@ -921,7 +921,7 @@
 
             const riskFactorsList = document.getElementById('riskFactors');
             riskFactorsList.innerHTML = `
-            <li><strong>Main Protective Factor:</strong> The coefficient for education years is negative, meaning higher education is a protective factor in this model.</li>    
+            <li><strong>Main Protective Factor:</strong> The coefficient for years of education is negative, meaning higher education is a protective factor in this model.</li>    
             <li><strong>Main Risk Factors:</strong> ${topPositive} contribute most to this patient's risk score.</li>
             `;
         }
