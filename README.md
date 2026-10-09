@@ -12,10 +12,15 @@ The probability is calculated from the full-precision intercept and coefficients
 
 The page shows the estimated probability, its relation to the selected threshold, and each predictor's signed contribution to the model linear predictor. A negative operational indicator does not establish clinically normal cognition. This tool is for research and exploratory risk stratification and must not be used as a standalone diagnostic or exclusion tool.
 
+## Main experimental code
+
+The manuscript's primary experimental workflow is available in [`code/`](code/), with installation, data-access, and execution instructions in [`code/README.md`](code/README.md). It includes cohort preparation, imputation, feature selection, logistic regression, eight benchmark models, primary evaluation, and the nomogram. Sensitivity analyses, alternative branches, presentation-only redraw scripts, and local review tools are excluded. PPMI participant/visit-level data and individual predictions are not distributed.
+
 ## Files and hosting
 
 - `index.html`: interface, styles, charts, and calculation logic.
 - `model_parameters.json`: model coefficients, thresholds, and aggregate validation information.
-- `README.md`: calculator description.
+- `README.md`: calculator and main-analysis overview.
+- `code/`: primary experimental code, required feature configuration, and frozen model parameters.
 
 GitHub Pages serves the repository root on `main`; no build command is needed. For local use, serve these files over HTTP so the parameter JSON can load. Lucide icons load from jsDelivr and require network access. The repository's existing MIT license remains applicable.

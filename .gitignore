@@ -1,0 +1,13 @@
+# Local runtime files
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+tmp/
+
+# Restricted PPMI data and participant/visit-level derivatives
+code/PPMI_[0-9]*.csv
+code/PPMI_Curated_Data_Cut_Public_*.xlsx
+code/tables_all_*/
+code/step_13_lr_predictions.csv
+code/step_14_*_predictions.csv
