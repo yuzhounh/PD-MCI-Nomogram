@@ -61,7 +61,7 @@ Enter all six predictors to view the estimated probability, its position relativ
 
 The training-derived thresholds are exploratory references, not externally validated clinical cutoffs. A negative operational indicator does not establish clinically normal cognition.
 
-[`index.html`](index.html) contains the interface, styles, charts, and browser calculation logic. It loads the full-precision intercept, coefficients, and thresholds from [`model_parameters.json`](model_parameters.json), with matching embedded defaults if the JSON cannot be loaded. Lucide icons are loaded from jsDelivr and require network access.
+[`index.html`](index.html) contains the interface, styles, charts, and browser calculation logic. It loads the full-precision intercept, coefficients, and thresholds directly from [`code/model_parameters.json`](code/model_parameters.json), with matching embedded defaults if the JSON cannot be loaded. Lucide icons are loaded from jsDelivr and require network access.
 
 ### Run the calculator locally
 
@@ -80,7 +80,6 @@ PD-MCI-Nomogram/
 ├── README.md                    # Project overview: analysis and calculator
 ├── LICENSE                      # MIT license
 ├── index.html                   # GitHub Pages calculator entry point
-├── model_parameters.json        # Parameter copy loaded by the calculator
 └── code/
     ├── README.md                # Detailed analysis instructions
     ├── requirements.txt        # Pinned Python analysis dependencies
@@ -90,12 +89,12 @@ PD-MCI-Nomogram/
     ├── utils.py                # Shared evaluation functions
     ├── figstyle.py             # Shared plotting style
     ├── PPMI_*feature*.csv      # Feature configuration, not participant data
-    └── model_parameters.json   # Frozen analysis model artifact
+    └── model_parameters.json   # Shared model artifact for analysis and calculator
 ```
 
 GitHub Pages currently publishes `main` from the repository root (`/`). Keeping `index.html` at that publishing root makes the calculator available at the existing project URL. The calculator needs no application build command or backend service.
 
-The model file under `code/` is the analysis artifact; the root model file is the calculator's deployment copy. Their JSON content must remain identical. Running the model-fitting pipeline can overwrite the analysis artifact, so update the calculator copy and its embedded defaults together when intentionally publishing a changed model.
+[`code/model_parameters.json`](code/model_parameters.json) is the single model-parameter file shared by the analysis, R nomogram, and browser calculator. The page loads it using the relative path `code/model_parameters.json`; no duplicate parameter file is kept at the repository root. Running the model-fitting pipeline can overwrite this artifact, so synchronize the calculator's embedded defaults when intentionally publishing a changed model.
 
 The root README introduces the complete project; `code/README.md` provides the directory-specific reproducibility instructions. Having both supports separate browsing of the project and its analysis code.
 

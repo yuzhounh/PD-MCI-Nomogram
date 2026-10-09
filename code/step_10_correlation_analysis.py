@@ -93,26 +93,30 @@ features_for_heatmap, features_with_consistently_low_corr = (
 
 print("=" * 80)
 print(
-    f"可用于相关性热图展示的特征 (与任意其他特征的相关系数绝对值 >= {CORRELATION_THRESHOLD}):"
+    f"Features eligible for the correlation heatmap (absolute correlation with any other feature >= {CORRELATION_THRESHOLD}):"
 )
 print("=" * 80)
-print(f"\n可纳入展示的特征数量: {len(features_for_heatmap)}")
-print(f"始终低相关且未纳入的特征数量: {len(features_with_consistently_low_corr)}")
+print(f"\nNumber of features included in the heatmap: {len(features_for_heatmap)}")
+print(
+    f"Number of consistently low-correlation features excluded: {len(features_with_consistently_low_corr)}"
+)
 
 if features_with_consistently_low_corr:
     print(
-        f"\n以下特征与所有其他特征的相关系数绝对值均 < {CORRELATION_THRESHOLD}（未纳入相关性热图）:"
+        f"\nThe following features have absolute correlations with all other features < {CORRELATION_THRESHOLD} (excluded from the heatmap):"
     )
     for feature in features_with_consistently_low_corr:
         max_corr = correlation_matrix[feature].drop(feature).abs().max()
-        print(f"  - {feature:20s} (最大相关系数: {max_corr:.4f})")
+        print(f"  - {feature:20s} (maximum correlation: {max_corr:.4f})")
 else:
-    print(f"\n所有特征都至少与一个其他特征有高于阈值的相关性")
+    print(
+        f"\nAll features have a correlation above the threshold with at least one other feature"
+    )
 
-print("\n可用于热力图展示的特征（并非最终用于模型的全部特征）:")
+print("\nFeatures for heatmap display (not the complete final model feature set):")
 for feature in features_for_heatmap:
     max_corr = correlation_matrix[feature].drop(feature).abs().max()
-    print(f"  - {feature:20s} (最大相关系数: {max_corr:.4f})")
+    print(f"  - {feature:20s} (maximum correlation: {max_corr:.4f})")
 
 # Plot the correlated feature subset to visualize redundancy; further feature removal is performed downstream.
 correlation_matrix_filtered = correlation_matrix.loc[

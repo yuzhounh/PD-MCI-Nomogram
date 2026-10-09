@@ -35,12 +35,12 @@ python code/run_all.py
 
 The runner changes to its own directory, executes an explicit 23-script Python/R manifest, and stops on the first failed step. It also supports `--python-only`, `--r-only`, `--start-from`, and `--skip`; later steps require outputs from earlier steps. The frozen full run took approximately 160 minutes, mainly because of the eight benchmark hyperparameter searches. Running the workflow writes intermediate datasets and results locally.
 
-`utils.py` and `figstyle.py` provide shared evaluation and plotting functions. `model_parameters.json` contains the frozen six-predictor model used by the nomogram and existing browser calculator. Re-running model fitting can overwrite this artifact. Bootstrap inference is part of the primary model evaluation, rather than an optional sensitivity-analysis branch.
+`utils.py` and `figstyle.py` provide shared evaluation and plotting functions. `model_parameters.json` is the single frozen six-predictor model artifact used by the analysis, R nomogram, and browser calculator. The repository-root `index.html` loads it directly from `code/model_parameters.json`. Re-running model fitting can overwrite this artifact; synchronize the calculator's embedded defaults when intentionally publishing a changed model. Bootstrap inference is part of the primary model evaluation, rather than an optional sensitivity-analysis branch.
 
 ## Scope of the model
 
 The outcome is the concurrent PPMI-derived operational cognitive-test PD-MCI indicator. Motor predictors use OFF-medication assessments in treated participants or assessments in untreated participants. The model supports exploratory visit-level risk stratification and is not a standalone clinical diagnosis or a prospective conversion model.
 
-Python files use Black formatting with an 88-character line target. Code comments and docstrings are in English; existing output labels are retained for compatibility with recorded results. Formatting and comment translation were checked to preserve executable Python syntax trees after excluding docstrings. The existing frozen analyses were not rerun for this presentation-only cleanup.
+Python files use Black formatting with an 88-character line target. Code comments, docstrings, terminal messages, warnings, and explanatory output labels are in English. Formatting and language changes were checked to preserve computational structure and interpolated expressions. The existing frozen analyses were not rerun for this presentation-only cleanup.
 
 Repository: [yuzhounh/PD-MCI-Nomogram](https://github.com/yuzhounh/PD-MCI-Nomogram).

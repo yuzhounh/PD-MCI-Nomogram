@@ -751,7 +751,7 @@
 
     <script>
         // ============ Model Parameters ============
-        // Loaded dynamically from model_parameters.json, with embedded defaults
+        // Loaded dynamically from code/model_parameters.json, with embedded defaults
         const MODEL = {
             coef: [0.631115501191589, -0.12452162649225493, 0.09415084311559398, 0.2988041285311768, 0.20987849643648598, 0.019406185418798863],
             intercept: -1.4953604775736613,
@@ -1013,7 +1013,7 @@
         // Dynamically load model parameters from JSON if available
         async function loadModelParameters() {
             try {
-                const res = await fetch('model_parameters.json');
+                const res = await fetch('code/model_parameters.json');
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.coefficients) {

@@ -308,16 +308,16 @@ def auto_detect_type(series: pd.Series) -> tuple[str, str]:
     )
 
     if n_unique <= 2:
-        return "Nominal", f"唯一值数量为 {n_unique}（≤2），判断为二分类无序变量"
+        return "Nominal", f"{n_unique} unique values (<=2): binary nominal variable"
     elif n_unique <= 8 and all_int:
         return "Nominal", (
-            f"唯一值数量为 {n_unique}（≤8）且全为整数，自动判断为无序分类变量；"
-            '若实为有序分类，请在 VARIABLE_TYPE_OVERRIDE 中手动指定 "Ordinal"'
+            f"{n_unique} unique integer values (<=8): automatically classified as nominal; "
+            'If ordinal, set the following value explicitly in VARIABLE_TYPE_OVERRIDE: "Ordinal"'
         )
     else:
         return (
             "Continuous",
-            f"唯一值数量为 {n_unique}（>8）或包含非整数，判断为连续变量",
+            f"{n_unique} unique values (>8) or non-integer values: continuous variable",
         )
 
 
@@ -325,7 +325,7 @@ def get_variable_type(series: pd.Series, col_name: str) -> tuple[str, str]:
     """Get the variable type, giving priority to manual overrides."""
     if col_name in VARIABLE_TYPE_OVERRIDE:
         vtype = VARIABLE_TYPE_OVERRIDE[col_name]
-        return vtype, f'手动指定为 "{vtype}"（VARIABLE_TYPE_OVERRIDE）'
+        return vtype, f'Manually specified as "{vtype}" (VARIABLE_TYPE_OVERRIDE)'
     return auto_detect_type(series)
 
 
@@ -342,7 +342,7 @@ def normality_test_single(arr: np.ndarray) -> tuple[float, str]:
     """
     n = len(arr)
     if n < 3:
-        return 1.0, "N/A（样本量不足）"
+        return 1.0, "N/A (insufficient sample size)"
     if n <= 50:
         _, p = shapiro(arr)
         return float(p), "Shapiro-Wilk"
@@ -513,16 +513,19 @@ def check_fisher_needed(contingency_table: pd.DataFrame) -> tuple[bool, str]:
         if min_expected < FISHER_2X2_EXPECTED:
             return (
                 True,
-                f"2×2 表中最小期望频数 {min_expected:.2f} < {FISHER_2X2_EXPECTED}",
+                f"Minimum expected count in the 2x2 table: {min_expected:.2f} < {FISHER_2X2_EXPECTED}",
             )
         return False, ""
     else:
         if min_expected < FISHER_RXC_MIN_ANY:
-            return True, f"r×c 表中存在期望频数 {min_expected:.2f} < 1"
+            return (
+                True,
+                f"The r x c table has an expected count of {min_expected:.2f} < 1",
+            )
         if n_small / n_cells > FISHER_RXC_PROPORTION:
             return (
                 True,
-                f"r×c 表中 {n_small}/{n_cells} 个格子期望频数 < 5（>{FISHER_RXC_PROPORTION:.0%}）",
+                f"In the r x c table, {n_small}/{n_cells} cells have expected counts < 5 (>{FISHER_RXC_PROPORTION:.0%})",
             )
         return False, ""
 
@@ -608,7 +611,7 @@ def compare_groups(
             method = "Chi-square test"
 
     else:
-        raise ValueError(f"未知变量类型：{var_type}")
+        raise ValueError(f"Unknown variable type: {var_type}")
 
     return method, float(p), posthoc_note
 
@@ -761,17 +764,17 @@ def analyze_cohort(
 ) -> pd.DataFrame:
     """Run stratified descriptions and univariable logistic GLMs for a dataset and save CSV output."""
     print(f"\n{'=' * 65}")
-    print(f"【{cohort_name}】正在读取数据：{file_path}")
+    print(f"[{cohort_name}] Reading data: {file_path}")
     print(f"{'=' * 65}")
 
     if not os.path.exists(file_path):
-        print(f"Error: 数据文件不存在：{file_path}")
+        print(f"Error: Data file does not exist: {file_path}")
         return None
 
     data = pd.read_csv(file_path)
 
     if GROUP_COL not in data.columns:
-        print(f'Error: 未找到列 "{GROUP_COL}"，请检查数据文件')
+        print(f'Error: Column "{GROUP_COL}" was not found; check the data file')
         return None
 
     # Feature columns, excluding the target and the first 5 columns.
@@ -783,16 +786,16 @@ def analyze_cohort(
 
     n_total = len(data)
     n_subjects = data["PATNO"].nunique()
-    print("样本量统计：")
-    print(f"  受试者数：{n_subjects}")
-    print(f"  访视记录总计：{n_total}")
+    print("Sample-size summary:")
+    print(f"  Subjects: {n_subjects}")
+    print(f"  Total visit records: {n_total}")
     for g, lab in zip(groups, group_labels):
         print(f"  {lab}（{GROUP_COL}={g}）：{len(data[data[GROUP_COL] == g])}")
-    print(f"待分析特征数：{len(feature_columns)}")
+    print(f"Number of features to analyze: {len(feature_columns)}")
 
     # ── Step 1: Variable types and normality assessment. ──────────────────────────────
     print("\n" + "=" * 65)
-    print(f"【{cohort_name} Step 1】变量类型判断与单变量关联建模")
+    print(f"[{cohort_name} Step 1] Variable types and univariable association modeling")
     print("=" * 65)
 
     var_type_dict = {}
@@ -801,7 +804,7 @@ def analyze_cohort(
     for feat in feature_columns:
         missing_rate = data[feat].isnull().mean()
         if missing_rate > MISSING_SKIP_THRESHOLD:
-            print(f"\n⚠  {feat}：缺失率 {missing_rate:.1%} > 50%，跳过")
+            print(f"\n[Warning] {feat}: missingness {missing_rate:.1%} > 50%; skipping")
             continue
 
         vtype, reason = get_variable_type(data[feat], feat)
@@ -922,7 +925,7 @@ def analyze_cohort(
     ]
     if valid_p_indices:
         print(
-            f"\n【{cohort_name} FDR 校正】对 {len(valid_p_indices)} 个有效 P 值进行 Benjamini-Hochberg 校正..."
+            f"\n[{cohort_name} FDR adjustment] Applying Benjamini-Hochberg to {len(valid_p_indices)} valid P values..."
         )
         p_to_adjust = [p for _, p in valid_p_indices]
         _, p_adjusted = fdrcorrection(p_to_adjust, alpha=FDR_ALPHA)
@@ -955,7 +958,7 @@ def analyze_cohort(
 
     # Print significant results.
     print("\n" + "=" * 65)
-    print(f"【{cohort_name} 显著结果汇总】（FDR 校正后 p < 0.05）")
+    print(f"[{cohort_name} Significant results] FDR-adjusted p < 0.05")
     print("=" * 65)
     for i, row in enumerate(table_rows):
         if i in parent_row_indices and row.get("Adjusted P Value"):
@@ -971,7 +974,7 @@ def analyze_cohort(
 
     # Save the CSV file.
     results_df.to_csv(output_file, index=False, encoding="utf-8-sig")
-    print(f"\n[OK] {cohort_name} 结果已保存至：{output_file}")
+    print(f"\n[OK] {cohort_name} results saved to: {output_file}")
 
     return results_df
 
@@ -983,7 +986,9 @@ def summarize_main_table(
 ) -> pd.DataFrame:
     """Generate main Table 1: Overall characteristics of training and subject-isolated validation sets, without hypothesis tests."""
     print(f"\n{'=' * 65}")
-    print("【正文 Table 1】生成训练集与隔离验证集总体特征描述表...")
+    print(
+        "[Main Table 1] Summarizing the training and subject-isolated validation sets..."
+    )
     print(f"{'=' * 65}")
 
     tr = pd.read_csv(train_path)
@@ -1077,7 +1082,7 @@ def summarize_main_table(
     print(markdown_table(main_df))
 
     main_df.to_csv(output_file, index=False, encoding="utf-8-sig")
-    print(f"\n[OK] 正文 Table 1 描述统计已保存至：{output_file}")
+    print(f"\n[OK] Main Table 1 descriptive statistics saved to: {output_file}")
 
     return main_df
 
@@ -1105,10 +1110,12 @@ def main():
     )
 
     print("\n" + "=" * 65)
-    print("[SUCCESS] 访视特征与单变量关联分析完成！已输出：")
-    print("  1. step_09_characteristics_stats_train.csv (Table S10 训练集)")
-    print("  2. step_09_characteristics_stats_test.csv (Table S10 验证集)")
-    print("  3. step_09_characteristics_stats_main.csv (正文 Table 1)")
+    print(
+        "[SUCCESS] Visit-level characteristics and univariable association analysis complete. Outputs:"
+    )
+    print("  1. step_09_characteristics_stats_train.csv (Table S10 training set)")
+    print("  2. step_09_characteristics_stats_test.csv (Table S10 validation set)")
+    print("  3. step_09_characteristics_stats_main.csv (main Table 1)")
     print("=" * 65)
 
     return df_train, df_test, df_main
